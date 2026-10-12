@@ -1,4 +1,12 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HEARO 체험</title>
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}</style>
+</head>
+<body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -355,7 +363,7 @@ tr.cur td { font-weight: 700; }
   <section class="adapt" id="adaptive" aria-labelledby="h-adapt">
     <div class="wrap">
       <h2 id="h-adapt">어떤 화면에서도 그대로</h2>
-      <p>예전에는 아이콘 위치를 고정된 dp 좌표로 박아 두어서, 화면이 달라지면 일부가 잘리거나 배경 그림과 어긋났습니다. 이제는 412×917dp 디자인을 비율 그대로 통째로 키우고 줄여서 모든 요소가 제자리에 있습니다.</p>
+      <p>예전에는 아이콘 위치를 고정된 dp 좌표로 박아 두어서, 화면이 달라지면 일부가 잘리거나 배경 그림과 어긋났습니다. 이제는 412×917dp 디자인을 비율 그대로 통째로 키우고 줄여서 모든 요소가 제자리에 있습니다. 아래에서 기기를 골라 보세요. 화면 크기는 각 기기의 기본 설정 기준이고(글자 크기·디스플레이 크기를 바꾸면 달라집니다), 아이폰에는 안드로이드 앱을 설치할 수 없어서 같은 크기의 화면에 놓았을 때의 모습을 보여 드립니다.</p>
       <div class="chips" id="dev-chips" role="group" aria-label="기기 크기 선택"></div>
       <div class="compare" id="compare"></div>
       <div class="tbl">
@@ -803,8 +811,13 @@ function syncModeUI(screenKey) {
 phone = new PhoneApp($('#screen'), { onScreen: syncModeUI });
 
 function phoneIntoView() {
-  const r = $('#phone-col').getBoundingClientRect();
-  if (r.top < 60 || r.bottom > innerHeight - 8) $('#phone-col').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  // 폰이 화면(헤더 아래)에 다 들어오면 가운데로, 더 크면 윗부분을 헤더 바로 아래에 맞춘다.
+  // 가운데에 맞추면 작은 폰에서 맨 위의 알림 배너가 헤더 뒤로 잘려 나간다.
+  const hdr = $('.top').getBoundingClientRect().bottom, d = $('#device').getBoundingClientRect();
+  const areaTop = hdr + 8, areaH = innerHeight - areaTop - 8;
+  if (d.top >= areaTop - 4 && d.bottom <= innerHeight - 8) return;
+  const want = areaTop + Math.max(0, (areaH - d.height) / 2);
+  scrollBy({ top: d.top - want, behavior: reduced ? 'auto' : 'smooth' });
 }
 function simulate(type) {
   const ok = phone.showAlert(type);
@@ -846,8 +859,11 @@ selectTab('home', false);
 
 /* ── 화면 크기 비교 ───────────────────────────────────────────────────── */
 const DEVICES = [
-  { n: '폰 412×915', w: 412, h: 915 }, { n: '폰 360×800', w: 360, h: 800 }, { n: '16:9 폰 360×640', w: 360, h: 640 },
-  { n: '접은 폴더블 280×653', w: 280, h: 653 }, { n: '펼친 폴더블 673×841', w: 673, h: 841 },
+  { n: 'iPhone SE3 · 375×667', w: 375, h: 667 }, { n: 'iPhone 12·13 mini · 375×812', w: 375, h: 812 },
+  { n: 'iPhone 15 Pro · 393×852', w: 393, h: 852 }, { n: 'iPhone 16·17·18 Pro · 402×874', w: 402, h: 874 },
+  { n: 'Galaxy Note20 Ultra · 412×883', w: 412, h: 883 }, { n: 'Galaxy S24·S25·S26 · 360×780', w: 360, h: 780 },
+  { n: 'Galaxy S24·S25·S26 Ultra · 412×891', w: 412, h: 891 },
+  { n: '16:9 폰 360×640', w: 360, h: 640 }, { n: '접은 폴더블 280×653', w: 280, h: 653 }, { n: '펼친 폴더블 673×841', w: 673, h: 841 },
   { n: '태블릿 800×1280', w: 800, h: 1280 }, { n: '가로 폰 800×360', w: 800, h: 360 },
 ];
 const mainEls = D.screens.main.els.filter(e => !e.gone && !e.deco && (e.label || e.click));
@@ -858,7 +874,7 @@ function oldResult(d) {
   if (cut.length) return { cut: cut.length, text: `${cut.length}곳 잘림 (${names.slice(0, 3).join(', ')}${names.length > 3 ? ' 외' : ''})` };
   return { cut: 0, text: used < 0.9 ? `잘리진 않지만 화면의 ${Math.round(used * 100)}%만 쓰고 나머지는 비어 있음` : '잘리지 않음' };
 }
-let devIdx = 1, cmpApps = [];
+let devIdx = 0, cmpApps = [];
 const chipsEl = $('#dev-chips'), cmpEl = $('#compare'), rowsEl = $('#dev-rows');
 DEVICES.forEach((d, i) => {
   const b = mk('button', 'tab', { type: 'button', 'aria-pressed': String(i === devIdx) }); b.textContent = d.n;
@@ -896,3 +912,6 @@ renderCompare();
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(renderCompare, 160); });
 })();
 </script>
+
+</body>
+</html>
